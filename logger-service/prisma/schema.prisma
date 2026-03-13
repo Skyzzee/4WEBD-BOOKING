@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Log {
+  id            String   @id @default(uuid())
+  level         LogLevel @default(INFO)
+  serviceName   String
+  message       String   @db.Text
+  stackTrace    String?  @db.Text
+  payload       Json?
+  createdAt     DateTime @default(now())
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  CRITICAL
+}

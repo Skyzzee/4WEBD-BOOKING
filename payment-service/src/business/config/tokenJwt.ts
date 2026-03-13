@@ -1,0 +1,21 @@
+import jwt from 'jsonwebtoken';
+import { AppError } from './appError';
+import { TokenDto } from '../types/tokenDto';
+
+
+const JWT_SECRET = process.env.JWT_SECRET || "super_secret";
+const JWT_EXPIRES_IN = "24h";
+
+
+export const generateToken = (payload: TokenDto): string => {
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+};
+
+export const verifyToken = (token: string): TokenDto => {
+    try {
+        return jwt.verify(token, JWT_SECRET) as TokenDto;
+    } catch (error) {
+        console.log(`Erreur lors de la vérification du token: ${error}`);
+        throw new AppError("Token invalide ou expiré.", 401);
+    }
+};
