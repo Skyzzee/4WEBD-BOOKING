@@ -88,4 +88,51 @@ const EMAIL_TEMPLATES: Record<string, (data: any) => { subject: string; html: st
                 <p style="font-size: 12px; color: #b3b3b3; text-align: center;">L'équipe Booking</p>
             </div>`
     }),
+
+    EVENT_CREATED: (data) => ({
+        subject: `Votre événement "${data.title}" a été créé`,
+        html: `
+            <div style="font-family: sans-serif; background-color: #121212; color: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+                <h1 style="color: #2f1db9;">Événement créé ✅</h1>
+                <p>Votre événement <strong>${data.title}</strong> a bien été créé.</p>
+                <p>Il est actuellement en statut <strong>DRAFT</strong>. Pensez à le publier pour qu'il soit visible par les utilisateurs.</p>
+                <br /><hr style="border: 0.5px solid #282828;" />
+                <p style="font-size: 12px; color: #b3b3b3; text-align: center;">L'équipe Booking</p>
+            </div>`
+    }),
+
+    EVENT_UPDATED: (data) => ({
+        subject: `Votre événement "${data.title}" a été modifié`,
+        html: `
+            <div style="font-family: sans-serif; background-color: #121212; color: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+                <h1 style="color: #2f1db9;">Événement modifié</h1>
+                <p>Votre événement <strong>${data.title}</strong> a bien été mis à jour.</p>
+                <br /><hr style="border: 0.5px solid #282828;" />
+                <p style="font-size: 12px; color: #b3b3b3; text-align: center;">L'équipe Booking</p>
+            </div>`
+    }),
+
+    EVENT_STATUS_UPDATED: (data) => ({
+        subject: `Statut de "${data.title}" mis à jour`,
+        html: `
+            <div style="font-family: sans-serif; background-color: #121212; color: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+                <h1 style="color: #2f1db9;">Statut mis à jour</h1>
+                <p>Le statut de votre événement <strong>${data.title}</strong> a été modifié.</p>
+                <p>Nouveau statut : <strong>${data.status}</strong></p>
+                <br /><hr style="border: 0.5px solid #282828;" />
+                <p style="font-size: 12px; color: #b3b3b3; text-align: center;">L'équipe Booking</p>
+            </div>`
+    }),
+
+    EVENT_DELETED: (data) => ({
+        subject: `Votre événement "${data.title}" a été supprimé`,
+        html: `
+            <div style="font-family: sans-serif; background-color: #121212; color: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+                <h1 style="color: #e53935;">Événement supprimé</h1>
+                <p>Votre événement <strong>${data.title}</strong> a été supprimé.</p>
+                <p>Si vous pensez qu'il s'agit d'une erreur, contactez notre support.</p>
+                <br /><hr style="border: 0.5px solid #282828;" />
+                <p style="font-size: 12px; color: #b3b3b3; text-align: center;">L'équipe Booking</p>
+            </div>`
+    }),
 };

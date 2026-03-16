@@ -7,6 +7,7 @@ const userRouter = Router();
 
 userRouter.post('/', internalMiddleware, userController.createUser);
 userRouter.get('/', internalMiddleware, userController.getAllUsers);
+userRouter.get('/internal/:authId', internalMiddleware, userController.getUserByAuthId);
 userRouter.delete('/:authId', internalMiddleware, userController.deleteUser);
 
 userRouter.get('/:authId', authMiddleware, userController.getUserByAuthId);

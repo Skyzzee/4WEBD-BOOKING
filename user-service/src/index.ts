@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import userRouter from './presentation/routes/userRoute';
+import { errorMiddleware } from './presentation/middlewares/errorMiddleware';
 
 const app = express();
 app.use(express.json());
@@ -12,6 +13,8 @@ const PORT = 3000;
 app.get('/', (req, res) => {
   res.send('Booking API User Service - Opérationnelle');
 });
+
+app.use(errorMiddleware);
 
 app.listen(PORT, () => {
   console.log(`User Service lancé sur http://localhost:${PORT}`);

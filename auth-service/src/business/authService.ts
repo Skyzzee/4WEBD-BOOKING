@@ -19,9 +19,9 @@ const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://user-service:30
 const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3000';
 
 export const register = async (dto: RegisterRequestDto) => {
-    const email = dto.email?.trim().toLowerCase();
-    const firstName = dto.firstName?.trim();
-    const lastName = dto.lastName?.trim();
+    const email = dto.email.trim().toLowerCase();
+    const firstName = dto.firstName.trim();
+    const lastName = dto.lastName.trim();
     const password = dto.password;
     const confirmPassword = dto.confirmPassword;
 
@@ -208,6 +208,37 @@ export const getUserById = async (id: string, token: string) => {
     return userInfos;
 };
 
+export const getUserByIdInternal = async (id: string) => {
+    const user = await prisma.authUser.findUnique({ 
+        where: { id } 
+    });
+
+    if (!user) {
+        throw new AppError("Utilisateur non trouvé.", 404);
+    }
+
+    const response = await fetch(`${USER_SERVICE_URL}/api/users/internal/${id}`, {
+        headers: {
+            'internal-api-key': process.env.INTERNAL_API_KEY || ''
+        }
+    });
+
+    const profile: UserProfileDto = await response.json();
+
+    const userInfos: UserInfosDto = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        firstName: profile?.firstName,
+        lastName: profile?.lastName,
+        phone: profile?.phone,
+        avatarUrl: profile?.avatarUrl,
+    };
+
+    return userInfos;
+};
+
 export const verifyEmail = async (token: string) => {
     const decoded = verifyToken(token) as VerificationTokenDto;
 
@@ -276,6 +307,10 @@ export const deleteUser = async (id: string) => {
 
     if (!user) {
         throw new AppError("Utilisateur non trouvé.", 404);
+    }
+
+    if (user.deletedAt) {
+        throw new AppError("Cet utilisateur a déjà été supprimé.", 409);
     }
 
     await prisma.authUser.update({

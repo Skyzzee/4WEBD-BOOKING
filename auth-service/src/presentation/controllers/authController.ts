@@ -78,6 +78,18 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
+export const getUserByIdInternal = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await authService.getUserByIdInternal(req.params.id as string);
+        res.status(200).json({ 
+            message: "Utilisateur récupéré avec succès.",
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await authService.updateUserRole(req.params.id as string, req.body.role as Role);

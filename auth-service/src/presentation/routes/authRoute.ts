@@ -3,6 +3,7 @@ import { authMiddleware } from '../middlewares/authMiddleware';
 import * as authController from '../controllers/authController';
 import { roleMiddleware } from '../middlewares/roleMiddleware';
 import { Role } from '@prisma/client';
+import { internalMiddleware } from '../middlewares/internalMiddleware';
 
 const authRouter = Router();
 
@@ -12,6 +13,7 @@ authRouter.get('/verify-email/:token', authController.verifyEmail);
 
 authRouter.get('/me', authMiddleware, authController.me);
 authRouter.get('/', authMiddleware, roleMiddleware(Role.ADMIN), authController.getAllUsers);
+authRouter.get('/internal/:id', internalMiddleware, authController.getUserByIdInternal);
 authRouter.get('/:id', authMiddleware, roleMiddleware(Role.ADMIN), authController.getUserById);
 authRouter.patch('/:id/role', authMiddleware, roleMiddleware(Role.ADMIN), authController.updateUserRole);
 authRouter.delete('/:id', authMiddleware, roleMiddleware(Role.ADMIN), authController.deleteUser);

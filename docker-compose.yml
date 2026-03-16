@@ -124,6 +124,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${EVENT_DB_USER}:${EVENT_DB_PASSWORD}@event-db:5432/${EVENT_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       PORT: 3000
     depends_on:
       - event-db
