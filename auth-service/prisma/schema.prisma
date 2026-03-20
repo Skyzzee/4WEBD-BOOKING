@@ -20,6 +20,5 @@ model AuthUser {
 enum Role {
   ADMIN
   EVENT_CREATOR
-  OPERATOR
   USER
 }

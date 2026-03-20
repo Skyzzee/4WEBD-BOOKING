@@ -14,7 +14,7 @@ model Event {
   date             DateTime
   maxCapacity      Int
   availableStock   Int
-  price            Float
+  price            Int
   status           EventStatus @default(DRAFT)
   createdByUserId  String
   createdAt        DateTime    @default(now())

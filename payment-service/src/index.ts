@@ -1,18 +1,21 @@
 import 'dotenv/config';
 import express from 'express';
 import paymentRouter from './presentation/routes/paymentRoute';
+import { errorMiddleware } from './presentation/middlewares/errorMiddleware';
 
 const app = express();
 app.use(express.json());
 
-app.use('/api/payment', paymentRouter);
+app.use('/api/payments', paymentRouter);
 
 const PORT = 3000;
 
 app.get('/', (req, res) => {
-  res.send('StreamLine API Payment Service - Opérationnelle');
+  res.send('Booking API Payment Service - Opérationnelle');
 });
 
+app.use(errorMiddleware);
+
 app.listen(PORT, () => {
-  console.log(`Serveur StreamLine Payment Service lancé sur http://localhost:${PORT}`);
+  console.log(`Payment Service lancé sur http://localhost:${PORT}`);
 });

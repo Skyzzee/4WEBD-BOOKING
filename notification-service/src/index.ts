@@ -1,16 +1,14 @@
 import 'dotenv/config';
 import express from 'express';
+import { handleNotify } from './presentation/controllers/notificationController';
 
 const app = express();
 app.use(express.json());
 
+app.post('/api/notify', handleNotify);
 
 const PORT = 3000;
 
-app.get('/', (req, res) => {
-  res.send('StreamLine API Notification Service - Opérationnelle');
-});
-
 app.listen(PORT, () => {
-  console.log(`Serveur StreamLine Notification Service lancé sur http://localhost:${PORT}`);
+  console.log(`Service lancé sur http://localhost:${PORT}`);
 });
