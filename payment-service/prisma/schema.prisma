@@ -9,14 +9,13 @@ datasource db {
 model Payment {
   id           String   @id @default(uuid())
   userId       String
-  ticketId     String
-  amount       Float
+  ticketId     String   @unique
+  amount       Int
   currency     String   @default("EUR")
   status       PaymentStatus
   providerName String?
   createdAt    DateTime @default(now())
-
-  @@index([ticketId])
+  updatedAt    DateTime @updatedAt
 }
 
 enum PaymentStatus {

@@ -13,6 +13,7 @@ eventRouter.get('/all', authMiddleware, roleMiddleware(Role.USER), eventControll
 eventRouter.get('/ec/all', authMiddleware, roleMiddleware(Role.EVENT_CREATOR), eventController.getEventsForEventCreator);
 eventRouter.get('/adm/all', authMiddleware, roleMiddleware(Role.ADMIN), eventController.getAllEventsForAdmin);
 
+eventRouter.get('/internal/:id', internalMiddleware, eventController.getEventByIdForUser);
 eventRouter.get('/ec/:id', authMiddleware, roleMiddleware(Role.EVENT_CREATOR), eventController.getEventByIdForEventCreator);
 eventRouter.get('/adm/:id', authMiddleware, roleMiddleware(Role.ADMIN), eventController.getEventByIdForAdmin);
 eventRouter.get('/:id', authMiddleware, roleMiddleware(Role.USER), eventController.getEventByIdForUser);

@@ -139,6 +139,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${TICKET_DB_USER}:${TICKET_DB_PASSWORD}@ticket-db:5432/${TICKET_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
+      JWT_QRCODE_SECRET: ${JWT_QRCODE_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       PORT: 3000
       EVENT_SERVICE_URL: http://event-service:3000
       PAYMENT_SERVICE_URL: http://payment-service:3000
@@ -161,6 +163,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${PAYMENT_DB_USER}:${PAYMENT_DB_PASSWORD}@payment-db:5432/${PAYMENT_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       PORT: 3000
     depends_on:
       - payment-db

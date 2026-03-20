@@ -135,4 +135,35 @@ const EMAIL_TEMPLATES: Record<string, (data: any) => { subject: string; html: st
                 <p style="font-size: 12px; color: #b3b3b3; text-align: center;">L'équipe Booking</p>
             </div>`
     }),
+
+    PAYMENT_FAILED: (data) => ({
+        subject: `Échec du paiement pour "${data.eventName}"`,
+        html: `
+            <div style="font-family: sans-serif; background-color: #121212; color: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+                <h1 style="color: #e53935;">Paiement échoué ❌</h1>
+                <p>Votre paiement pour l'événement <strong>${data.eventName}</strong> n'a pas pu être traité.</p>
+                <p>Aucun montant n'a été débité. Vous pouvez réessayer depuis la plateforme.</p>
+                <br /><hr style="border: 0.5px solid #282828;" />
+                <p style="font-size: 12px; color: #b3b3b3; text-align: center;">L'équipe Booking</p>
+            </div>`
+    }),
+
+    TICKET_CONFIRMED: (data) => ({
+        subject: `Votre billet pour "${data.eventName}" est confirmé ! 🎟️`,
+        html: `
+            <div style="font-family: sans-serif; background-color: #121212; color: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+                <h1 style="color: #2f1db9;">Billet confirmé 🎟️</h1>
+                <p>Votre achat pour <strong>${data.eventName}</strong> a bien été confirmé.</p>
+                <div style="background-color: #1e1e1e; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p><strong>Événement :</strong> ${data.eventName}</p>
+                    <p><strong>Date :</strong> ${new Date(data.eventDate).toLocaleDateString('fr-FR', { dateStyle: 'full' })}</p>
+                    <p><strong>Lieu :</strong> ${data.location}</p>
+                    <p><strong>N° de billet :</strong> ${data.ticketId}</p>
+                    <p><strong>Montant payé :</strong> ${(data.amountInCents / 100).toFixed(2)} €</p>
+                </div>
+                <p style="font-size: 12px; color: #b3b3b3;">Présentez ce numéro de billet à l'entrée de l'événement.</p>
+                <br /><hr style="border: 0.5px solid #282828;" />
+                <p style="font-size: 12px; color: #b3b3b3; text-align: center;">L'équipe Booking</p>
+            </div>`
+    }),
 };

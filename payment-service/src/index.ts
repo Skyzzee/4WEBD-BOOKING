@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import paymentRouter from './presentation/routes/paymentRoute';
+import { errorMiddleware } from './presentation/middlewares/errorMiddleware';
 
 const app = express();
 app.use(express.json());
@@ -12,6 +13,8 @@ const PORT = 3000;
 app.get('/', (req, res) => {
   res.send('Booking API Payment Service - Opérationnelle');
 });
+
+app.use(errorMiddleware);
 
 app.listen(PORT, () => {
   console.log(`Payment Service lancé sur http://localhost:${PORT}`);

@@ -10,7 +10,8 @@ model Ticket {
   id           String       @id @default(uuid())
   eventId      String
   userId       String
-  qrCode       String       @unique
+  paymentId    String?      @unique
+  qrCode       String?      @unique
   status       TicketStatus @default(PENDING)
   purchasedAt  DateTime?
   createdAt    DateTime     @default(now())
