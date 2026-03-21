@@ -176,6 +176,21 @@ export const refundPayment = async (id: string) => {
     );
   }
 
+  if (!payment.stripePaymentIntentId) {
+    throw new AppError("Aucun identifiant Stripe associé à ce paiement.", 500);
+  }
+
+  try {
+    await stripe.refunds.create({
+      payment_intent: payment.stripePaymentIntentId,
+    });
+  } catch (stripeError: any) {
+    throw new AppError(
+      `Remboursement Stripe échoué : ${stripeError.message}`,
+      402,
+    );
+  }
+
   const updatedPayment = await prisma.payment.update({
     where: { id },
     data: { status: PaymentStatus.REFUNDED },
