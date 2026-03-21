@@ -1,6 +1,5 @@
 services:
-
-# DATABASES
+  # DATABASES
   auth-db:
     image: postgres:16-alpine
     container_name: auth-db
@@ -85,7 +84,7 @@ services:
     networks:
       - booking-network
 
-# SERVICES
+  # SERVICES
   auth-service:
     build:
       context: ./auth-service
@@ -162,6 +161,7 @@ services:
     container_name: payment-service
     environment:
       DATABASE_URL: postgresql://${PAYMENT_DB_USER}:${PAYMENT_DB_PASSWORD}@payment-db:5432/${PAYMENT_DB_NAME}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       PORT: 3000
@@ -197,7 +197,7 @@ services:
     networks:
       - booking-network
 
-# NGINX
+  # NGINX
   nginx:
     image: nginx:latest
     container_name: nginx
