@@ -4,13 +4,12 @@ import { TicketStatus } from "@prisma/client";
 import { EventStatus } from "./types/enums/eventStatus";
 import { Role } from "./types/enums/role";
 import { generateQrCode, verifyQrCode } from "./config/tokenJwt";
+import { publishNotification } from "./publisher/notificationPublisher";
 
 const EVENT_SERVICE_URL =
   process.env.EVENT_SERVICE_URL || "http://event-service:3000";
 const PAYMENT_SERVICE_URL =
   process.env.PAYMENT_SERVICE_URL || "http://payment-service:3000";
-const NOTIFICATION_SERVICE_URL =
-  process.env.NOTIFICATION_SERVICE_URL || "http://notification-service:3000";
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://auth-service:3000";
 
@@ -80,17 +79,16 @@ export const buyTicket = async (eventId: string, userId: string) => {
       data: { status: TicketStatus.CANCELLED },
     });
 
-    fetch(`${NOTIFICATION_SERVICE_URL}/api/notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await publishNotification({
         template: "PAYMENT_FAILED",
         to: authUser.email,
         data: { eventName: event.title },
-      }),
-    }).catch((err) =>
-      console.error("Notification service unavailable:", err.message),
-    );
+      });
+    } catch (error: any) {
+      console.error("Erreur publication notification:", error.message);
+      // TODO: publish an event for the log queue
+    }
 
     throw new AppError("Le paiement a échoué.", 400);
   }
@@ -114,10 +112,8 @@ export const buyTicket = async (eventId: string, userId: string) => {
     headers: { "internal-api-key": process.env.INTERNAL_API_KEY || "" },
   });
 
-  fetch(`${NOTIFICATION_SERVICE_URL}/api/notify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  try {
+    await publishNotification({
       template: "TICKET_CONFIRMED",
       to: authUser.email,
       data: {
@@ -128,10 +124,11 @@ export const buyTicket = async (eventId: string, userId: string) => {
         qrCode: updatedTicket.qrCode,
         amountInCents: event.price,
       },
-    }),
-  }).catch((err) =>
-    console.error("Notification service unavailable:", err.message),
-  );
+    });
+  } catch (error: any) {
+    console.error("Erreur publication notification:", error.message);
+    // TODO: publish an event for the log queue
+  }
 
   return updatedTicket;
 };

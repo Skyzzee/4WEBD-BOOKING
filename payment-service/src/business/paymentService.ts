@@ -5,13 +5,12 @@ import { AppError } from "./config/appError";
 import { PaymentStatus } from "@prisma/client";
 import { Role } from "./types/enums/role";
 import { TicketDto } from "./types/ticketDto";
+import { publishNotification } from "./publisher/notificationPublisher";
 
 const TICKET_SERVICE_URL =
   process.env.TICKET_SERVICE_URL || "http://ticket-service:3000";
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://auth-service:3000";
-const NOTIFICATION_SERVICE_URL =
-  process.env.NOTIFICATION_SERVICE_URL || "http://notification-service:3000";
 
 const getAuthUser = async (userId: string) => {
   const authResponse = await fetch(
@@ -198,20 +197,19 @@ export const refundPayment = async (id: string) => {
 
   const authUser = await getAuthUser(payment.userId);
 
-  fetch(`${NOTIFICATION_SERVICE_URL}/api/notify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  try {
+    await publishNotification({
       template: "PAYMENT_REFUNDED",
       to: authUser.email,
       data: {
         amount: payment.amount,
         currency: payment.currency,
       },
-    }),
-  }).catch((err) =>
-    console.error("Notification service unavailable:", err.message),
-  );
+    });
+  } catch (error: any) {
+    console.error("Erreur publication notification:", error.message);
+    // TODO: publish an event for the log queue
+  }
 
   return updatedPayment;
 };
