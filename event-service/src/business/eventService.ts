@@ -29,7 +29,13 @@ export const createEvent = async (
   const description = dto.description?.trim();
   const location = dto.location.trim();
 
-  if (!title || !location || !dto.date || !dto.maxCapacity || !dto.price) {
+  if (
+    !title ||
+    !location ||
+    !dto.date ||
+    dto.maxCapacity === undefined ||
+    dto.price === undefined
+  ) {
     throw new AppError(
       "Tous les champs ormis la description sont obligatoire.",
       400,
