@@ -1,5 +1,9 @@
 import "dotenv/config";
 import express from "express";
+import swaggerUi from "swagger-ui-express";
+import jsYaml from "js-yaml";
+import fs from "fs";
+import path from "path";
 import eventRouter from "./presentation/routes/eventRoute";
 import { errorMiddleware } from "./presentation/middlewares/errorMiddleware";
 import { connectRabbitMQ } from "./business/config/rabbitmq";
@@ -7,6 +11,11 @@ import { connectRabbitMQ } from "./business/config/rabbitmq";
 const app = express();
 app.use(express.json());
 
+const swaggerDocument = jsYaml.load(
+  fs.readFileSync(path.join(__dirname, "../doc/openapi.yaml"), "utf8"),
+) as object;
+
+app.use("/api/events/doc", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use("/api/events", eventRouter);
 
 const PORT = 3000;
