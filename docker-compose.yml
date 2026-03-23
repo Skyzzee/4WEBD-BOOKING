@@ -191,6 +191,8 @@ services:
     container_name: logger-service
     environment:
       DATABASE_URL: postgresql://${LOGGER_DB_USER}:${LOGGER_DB_PASSWORD}@logger-db:5432/${LOGGER_DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       PORT: 3000
     depends_on:
       - logger-db

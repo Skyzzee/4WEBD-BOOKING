@@ -3,9 +3,12 @@ import { AppError } from './config/appError';
 import { EventStatus } from '@prisma/client';
 import { CreateEventDto } from './types/createEventDto';
 import { UpdateEventDto } from './types/updateEventDto';
+import { LogEventDto } from './types/logEventDto';
 
 const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3000';
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
+const LOGGER_SERVICE_URL = process.env.LOGGER_SERVICE_URL || 'http://logger-service:3000';
+
 
 const getAuthUser = async (userId: string) => {
     const authResponse = await fetch(`${AUTH_SERVICE_URL}/api/auth/internal/${userId}`, {
@@ -14,6 +17,20 @@ const getAuthUser = async (userId: string) => {
 
     const result = await authResponse.json();
     return result.data;
+};
+
+const logEvent = async (dto: LogEventDto) => {
+    fetch(`${LOGGER_SERVICE_URL}/api/loggers`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'internal-api-key': process.env.INTERNAL_API_KEY || ''
+        },
+        body: JSON.stringify({
+            ...dto,
+            serviceName: 'EVENT_SERVICE'
+        })
+    }).catch(err => console.error(`[EVENT_SERVICE] Logger service unavailable:`, err.message));
 };
 
 export const createEvent = async (dto: CreateEventDto, createdByUserId: string,  token: string) => {

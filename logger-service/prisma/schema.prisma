@@ -11,8 +11,7 @@ model Log {
   level         LogLevel @default(INFO)
   serviceName   String
   message       String   @db.Text
-  stackTrace    String?  @db.Text
-  payload       Json?
+  userId        String?
   createdAt     DateTime @default(now())
 }
 
