@@ -5,12 +5,15 @@ import { AppError } from "./config/appError";
 import { PaymentStatus } from "@prisma/client";
 import { Role } from "./types/enums/role";
 import { TicketDto } from "./types/ticketDto";
+import { LogEventDto } from "./types/logEventDto";
 import { publishNotification } from "./publisher/notificationPublisher";
 
 const TICKET_SERVICE_URL =
   process.env.TICKET_SERVICE_URL || "http://ticket-service:3000";
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://auth-service:3000";
+const LOGGER_SERVICE_URL =
+  process.env.LOGGER_SERVICE_URL || "http://logger-service:3000";
 
 const getAuthUser = async (userId: string) => {
   const authResponse = await fetch(
@@ -21,6 +24,22 @@ const getAuthUser = async (userId: string) => {
   );
   const result = await authResponse.json();
   return result.data;
+};
+
+const logEvent = async (dto: LogEventDto) => {
+  fetch(`${LOGGER_SERVICE_URL}/api/loggers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "internal-api-key": process.env.INTERNAL_API_KEY || "",
+    },
+    body: JSON.stringify({
+      ...dto,
+      serviceName: "PAYMENT_SERVICE",
+    }),
+  }).catch((err) =>
+    console.error(`[PAYMENT_SERVICE] Logger service unavailable:`, err.message),
+  );
 };
 
 export const createPayment = async (

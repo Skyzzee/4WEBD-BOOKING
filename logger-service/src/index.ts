@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import loggerRouter from "./presentation/routes/loggerRoute";
 import { connectRabbitMQ } from "./business/config/rabbitmq";
+import { errorMiddleware } from "./presentation/middlewares/errorMiddleware";
 
 const app = express();
 app.use(express.json());
@@ -23,6 +24,7 @@ const PORT = 3000;
 app.get("/", (req, res) => {
   res.send("Booking API Logger Service - Opérationnelle");
 });
+app.use(errorMiddleware);
 
 const start = async () => {
   await connectRabbitMQ();

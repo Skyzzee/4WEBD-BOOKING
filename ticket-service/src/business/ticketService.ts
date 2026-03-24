@@ -5,6 +5,7 @@ import { EventStatus } from "./types/enums/eventStatus";
 import { Role } from "./types/enums/role";
 import { generateQrCode, verifyQrCode } from "./config/tokenJwt";
 import { publishNotification } from "./publisher/notificationPublisher";
+import { LogEventDto } from "./types/logEventDto";
 
 const EVENT_SERVICE_URL =
   process.env.EVENT_SERVICE_URL || "http://event-service:3000";
@@ -12,6 +13,8 @@ const PAYMENT_SERVICE_URL =
   process.env.PAYMENT_SERVICE_URL || "http://payment-service:3000";
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://auth-service:3000";
+const LOGGER_SERVICE_URL =
+  process.env.LOGGER_SERVICE_URL || "http://logger-service:3000";
 
 const getAuthUser = async (userId: string) => {
   const authResponse = await fetch(
@@ -22,6 +25,22 @@ const getAuthUser = async (userId: string) => {
   );
   const result = await authResponse.json();
   return result.data;
+};
+
+const logEvent = async (dto: LogEventDto) => {
+  fetch(`${LOGGER_SERVICE_URL}/api/loggers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "internal-api-key": process.env.INTERNAL_API_KEY || "",
+    },
+    body: JSON.stringify({
+      ...dto,
+      serviceName: "TICKET_SERVICE",
+    }),
+  }).catch((err) =>
+    console.error(`[TICKET_SERVICE] Logger service unavailable:`, err.message),
+  );
 };
 
 export const buyTicket = async (eventId: string, userId: string) => {

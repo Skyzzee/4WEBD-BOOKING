@@ -1,7 +1,24 @@
 import { prisma } from '../data/prismaClient';
 import { AppError } from './config/appError';
 import { CreateUserDto } from './types/createUserDto';
+import { LogEventDto } from './types/logEventDto';
 import { UpdateUserDto } from './types/updateUserDto';
+
+const LOGGER_SERVICE_URL = process.env.LOGGER_SERVICE_URL || 'http://logger-service:3000';
+
+const logEvent = async (dto: LogEventDto) => {
+    fetch(`${LOGGER_SERVICE_URL}/api/loggers`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'internal-api-key': process.env.INTERNAL_API_KEY || ''
+        },
+        body: JSON.stringify({
+            ...dto,
+            serviceName: 'USER_SERVICE'
+        })
+    }).catch(err => console.error(`[USER_SERVICE] Logger service unavailable:`, err.message));
+};
 
 // Peut être appelé seulement par l'auth-Service donc n'a pas besoin de contacter notification-service
 export const createUser = async (dto: CreateUserDto) => {

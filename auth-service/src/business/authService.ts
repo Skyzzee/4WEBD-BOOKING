@@ -15,12 +15,29 @@ import {
 import { AccessTokenDto } from "./types/tokens/accessTokenDto";
 import { UserProfileDto } from "./types/userProfileDto";
 import { publishNotification } from "./publisher/notificationPublisher";
+import { LogEventDto, LogSeverity } from "./types/logEventDto";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 const USER_SERVICE_URL =
   process.env.USER_SERVICE_URL || "http://user-service:3000";
+const LOGGER_SERVICE_URL =
+  process.env.LOGGER_SERVICE_URL || "http://logger-service:3000";
+
+const logEvent = async (dto: LogEventDto) => {
+  fetch(`${LOGGER_SERVICE_URL}/api/loggers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "internal-api-key": process.env.INTERNAL_API_KEY || "",
+    },
+    body: JSON.stringify({
+      ...dto,
+      serviceName: "AUTH_SERVICE",
+    }),
+  }).catch((err) => console.error(`Logger service unavailable:`, err.message));
+};
 
 export const register = async (dto: RegisterRequestDto) => {
   const email = dto.email.trim().toLowerCase();
@@ -30,10 +47,18 @@ export const register = async (dto: RegisterRequestDto) => {
   const confirmPassword = dto.confirmPassword;
 
   if (!email || !EMAIL_REGEX.test(email)) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Inscription échouée, email invalide : ${email}`,
+    });
     throw new AppError("Email invalide.", 400);
   }
 
   if (!password || !PASSWORD_REGEX.test(password)) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Inscription échouée, mot de passe non conforme pour l'email : ${email}`,
+    });
     throw new AppError(
       "Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre.",
       400,
@@ -41,10 +66,18 @@ export const register = async (dto: RegisterRequestDto) => {
   }
 
   if (password !== confirmPassword) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Inscription échouée, les mots de passe ne correspondent pas pour l'email : ${email}`,
+    });
     throw new AppError("Les mots de passe ne correspondent pas.", 400);
   }
 
   if (!firstName || !lastName) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Inscription échouée, le prénom ou le nom n'est pas renseigné pour l'email : ${email}`,
+    });
     throw new AppError("Le prénom et le nom sont obligatoires.", 400);
   }
 
@@ -84,6 +117,10 @@ export const register = async (dto: RegisterRequestDto) => {
     await prisma.authUser.delete({
       where: { id: user.id },
     });
+    logEvent({
+      level: LogSeverity.ERROR,
+      message: `[AUTH_SERVICE] Erreur lors de la création du profil utilisateur pour l'email : ${email}`,
+    });
     throw new AppError(
       "Erreur lors de la création du profil utilisateur.",
       500,
@@ -95,6 +132,13 @@ export const register = async (dto: RegisterRequestDto) => {
     email: user.email,
     type: VerificationTokenType.EMAIL_CONFIRMATION,
   } as VerificationTokenDto);
+  if (existingEmailUser) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Inscription échouée, email déjà utilisé : ${email}`,
+    });
+    throw new AppError("Cet email est déjà utilisé.", 409);
+  }
 
   try {
     await publishNotification({
@@ -115,6 +159,10 @@ export const register = async (dto: RegisterRequestDto) => {
     email: user.email,
   };
 
+  logEvent({
+    level: LogSeverity.INFO,
+    message: `[AUTH_SERVICE] Nouvel utilisateur inscrit : ${email}`,
+  });
   return registerResponse;
 };
 
@@ -122,6 +170,10 @@ export const login = async (dto: LoginRequestDto) => {
   const { email, password } = dto;
 
   if (!email || !password) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Email et mot de passe sont requis.`,
+    });
     throw new AppError("Email et mot de passe sont requis.", 400);
   }
 
@@ -130,10 +182,18 @@ export const login = async (dto: LoginRequestDto) => {
   });
 
   if (!user) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de connexion avec un email non enregistré : ${email}`,
+    });
     throw new AppError("Email ou mot de passe incorrect.", 401);
   }
 
   if (!user.isActive) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de connexion avec un compte non activé : ${email}`,
+    });
     throw new AppError(
       "Veuillez confirmer votre email avant de vous connecter.",
       403,
@@ -141,11 +201,19 @@ export const login = async (dto: LoginRequestDto) => {
   }
 
   if (user.deletedAt !== null) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de connexion avec un compte supprimé : ${email}`,
+    });
     throw new AppError("Votre compte à été supprimé.", 403);
   }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de connexion avec un mot de passe incorrect : ${email}`,
+    });
     throw new AppError("Email ou mot de passe incorrect.", 401);
   }
 
@@ -162,6 +230,10 @@ export const login = async (dto: LoginRequestDto) => {
     accessToken,
   };
 
+  logEvent({
+    level: LogSeverity.INFO,
+    message: `[AUTH_SERVICE] Utilisateur connecté : ${user.email}`,
+  });
   return loginResponse;
 };
 
@@ -179,6 +251,10 @@ export const getAllUsers = async () => {
 
   const profiles: UserProfileDto[] = await response.json();
 
+  logEvent({
+    level: LogSeverity.INFO,
+    message: `[AUTH_SERVICE] Récupération des profils utilisateurs : ${profiles.length}`,
+  });
   return authUsers.map((authUser) => {
     const profile = profiles.find(
       (p: UserProfileDto) => p.authId === authUser.id,
@@ -199,6 +275,10 @@ export const getUserById = async (id: string, token: string) => {
   });
 
   if (!user) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de récupération d'un utilisateur non trouvé : ${id}`,
+    });
     throw new AppError("Utilisateur non trouvé.", 404);
   }
 
@@ -221,6 +301,11 @@ export const getUserById = async (id: string, token: string) => {
     avatarUrl: profile?.avatarUrl,
   };
 
+  logEvent({
+    level: LogSeverity.INFO,
+    message: `[AUTH_SERVICE] Informations utilisateur récupérées : ${id}`,
+  });
+
   return userInfos;
 };
 
@@ -230,6 +315,10 @@ export const getUserByIdInternal = async (id: string) => {
   });
 
   if (!user) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de récupération d'un utilisateur non trouvé : ${id}`,
+    });
     throw new AppError("Utilisateur non trouvé.", 404);
   }
 
@@ -252,6 +341,11 @@ export const getUserByIdInternal = async (id: string) => {
     avatarUrl: profile?.avatarUrl,
   };
 
+  logEvent({
+    level: LogSeverity.INFO,
+    message: `[AUTH_SERVICE] Informations utilisateur récupérées : ${id}`,
+  });
+
   return userInfos;
 };
 
@@ -259,6 +353,10 @@ export const verifyEmail = async (token: string) => {
   const decoded = verifyToken(token) as VerificationTokenDto;
 
   if (decoded.type !== VerificationTokenType.EMAIL_CONFIRMATION) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative d'activation d'un compte avec un token invalide : ${decoded.email}`,
+    });
     throw new AppError("Token invalide.", 400);
   }
 
@@ -267,10 +365,18 @@ export const verifyEmail = async (token: string) => {
   });
 
   if (!user) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative d'activation d'un compte non trouvé : ${decoded.email}`,
+    });
     throw new AppError("Utilisateur non trouvé.", 404);
   }
 
   if (user.isActive) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative d'activation d'un compte déjà activé : ${user.email}`,
+    });
     throw new AppError("Ce compte est déjà activé.", 400);
   }
 
@@ -289,6 +395,11 @@ export const verifyEmail = async (token: string) => {
     where: { id: user.id },
     data: { isActive: true },
   });
+
+  logEvent({
+    level: LogSeverity.INFO,
+    message: `[AUTH_SERVICE] Compte utilisateur activé : ${user.email}`,
+  });
 };
 
 export const updateUserRole = async (id: string, role: Role) => {
@@ -297,12 +408,21 @@ export const updateUserRole = async (id: string, role: Role) => {
   });
 
   if (!user || user.deletedAt) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de mise à jour du rôle d'un utilisateur non trouvé ou supprimé : ${id}`,
+    });
     throw new AppError("Utilisateur non trouvé.", 404);
   }
 
   const updatedUser = await prisma.authUser.update({
     where: { id },
     data: { role },
+  });
+
+  logEvent({
+    level: LogSeverity.INFO,
+    message: `[AUTH_SERVICE] Rôle mis à jour pour l'utilisateur : ${id}`,
   });
 
   try {
@@ -325,10 +445,18 @@ export const deleteUser = async (id: string) => {
   });
 
   if (!user) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de suppression d'un utilisateur non trouvé : ${id}`,
+    });
     throw new AppError("Utilisateur non trouvé.", 404);
   }
 
   if (user.deletedAt) {
+    logEvent({
+      level: LogSeverity.WARN,
+      message: `[AUTH_SERVICE] Tentative de suppression d'un utilisateur déjà supprimé : ${id}`,
+    });
     throw new AppError("Cet utilisateur a déjà été supprimé.", 409);
   }
 
@@ -352,12 +480,19 @@ export const deleteUser = async (id: string) => {
       where: { id },
       data: { deletedAt: null, isActive: true },
     });
+    logEvent({
+      level: LogSeverity.ERROR,
+      message: `[AUTH_SERVICE] Erreur lors de la suppression du profil utilisateur : ${id}`,
+    });
     throw new AppError(
       "Erreur lors de la suppression du profil utilisateur.",
       500,
     );
   }
-
+  logEvent({
+    level: LogSeverity.INFO,
+    message: `[AUTH_SERVICE] Utilisateur supprimé : ${id}`,
+  });
   try {
     await publishNotification({
       template: "ACCOUNT_DELETED",
