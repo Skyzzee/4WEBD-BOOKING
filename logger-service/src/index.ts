@@ -7,6 +7,7 @@ import path from "path";
 import loggerRouter from "./presentation/routes/loggerRoute";
 import { connectRabbitMQ } from "./business/config/rabbitmq";
 import { errorMiddleware } from "./presentation/middlewares/errorMiddleware";
+import { startLogsConsumer } from "./business/consumers/logsConsumer";
 
 const app = express();
 app.use(express.json());
@@ -28,6 +29,7 @@ app.use(errorMiddleware);
 
 const start = async () => {
   await connectRabbitMQ();
+  await startLogsConsumer();
   app.listen(PORT, () => {
     console.log(`Logger Service lancé sur http://localhost:${PORT}`);
   });
