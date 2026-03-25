@@ -1,19 +1,17 @@
 import Stripe from "stripe";
+import { PaymentStatus } from "@prisma/client";
 import stripe from "./config/stripe";
 import { prisma } from "../data/prismaClient";
 import { AppError } from "./config/appError";
-import { PaymentStatus } from "@prisma/client";
 import { Role } from "./types/enums/role";
 import { TicketDto } from "./types/ticketDto";
-import { LogEventDto } from "./types/logEventDto";
 import { publishNotification } from "./publisher/notificationPublisher";
+import { logger } from "./utils/logger";
 
 const TICKET_SERVICE_URL =
   process.env.TICKET_SERVICE_URL || "http://ticket-service:3000";
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://auth-service:3000";
-const LOGGER_SERVICE_URL =
-  process.env.LOGGER_SERVICE_URL || "http://logger-service:3000";
 
 const getAuthUser = async (userId: string) => {
   const authResponse = await fetch(
@@ -22,24 +20,9 @@ const getAuthUser = async (userId: string) => {
       headers: { "internal-api-key": process.env.INTERNAL_API_KEY || "" },
     },
   );
+
   const result = await authResponse.json();
   return result.data;
-};
-
-const logEvent = async (dto: LogEventDto) => {
-  fetch(`${LOGGER_SERVICE_URL}/api/loggers`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "internal-api-key": process.env.INTERNAL_API_KEY || "",
-    },
-    body: JSON.stringify({
-      ...dto,
-      serviceName: "PAYMENT_SERVICE",
-    }),
-  }).catch((err) =>
-    console.error(`[PAYMENT_SERVICE] Logger service unavailable:`, err.message),
-  );
 };
 
 export const createPayment = async (
@@ -57,6 +40,7 @@ export const createPayment = async (
   }
 
   let paymentIntent: Stripe.PaymentIntent;
+
   try {
     paymentIntent = await stripe.paymentIntents.create({
       amount,
@@ -76,6 +60,7 @@ export const createPayment = async (
         providerName: "STRIPE",
       },
     });
+
     throw new AppError(`Paiement Stripe échoué : ${stripeError.message}`, 402);
   }
 
@@ -91,6 +76,7 @@ export const createPayment = async (
         stripePaymentIntentId: paymentIntent.id,
       },
     });
+
     throw new AppError(
       `Paiement non abouti. Statut Stripe : ${paymentIntent.status}`,
       402,
@@ -109,6 +95,10 @@ export const createPayment = async (
     },
   });
 
+  await logger.info(`Payment created successfully: ${payment.id}`, {
+    userId,
+  });
+
   return payment;
 };
 
@@ -120,6 +110,10 @@ export const getPaymentById = async (id: string) => {
   if (!payment) {
     throw new AppError("Paiement non trouvé.", 404);
   }
+
+  await logger.info(`Payment retrieved successfully: ${id}`, {
+    userId: payment.userId,
+  });
 
   return payment;
 };
@@ -141,14 +135,27 @@ export const getPaymentByTicketId = async (
     throw new AppError("Vous n'êtes pas autorisé à voir ce paiement.", 403);
   }
 
+  await logger.info(`Payment retrieved successfully for ticket: ${ticketId}`, {
+    userId,
+  });
+
   return payment;
 };
 
 export const getPaymentsByUserId = async (userId: string) => {
-  return await prisma.payment.findMany({
+  const payments = await prisma.payment.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
   });
+
+  await logger.info(
+    `User payments retrieved successfully: ${payments.length}`,
+    {
+      userId,
+    },
+  );
+
+  return payments;
 };
 
 export const getPaymentsByEventId = async (eventId: string) => {
@@ -168,10 +175,16 @@ export const getPaymentsByEventId = async (eventId: string) => {
 
   const ticketIds = tickets.map((ticket: TicketDto) => ticket.id);
 
-  return await prisma.payment.findMany({
+  const payments = await prisma.payment.findMany({
     where: { ticketId: { in: ticketIds } },
     orderBy: { createdAt: "desc" },
   });
+
+  await logger.info(
+    `Event payments retrieved successfully: ${payments.length}`,
+  );
+
+  return payments;
 };
 
 export const refundPayment = async (id: string) => {
@@ -205,7 +218,7 @@ export const refundPayment = async (id: string) => {
   } catch (stripeError: any) {
     throw new AppError(
       `Remboursement Stripe échoué : ${stripeError.message}`,
-      402,
+      502,
     );
   }
 
@@ -225,10 +238,16 @@ export const refundPayment = async (id: string) => {
         currency: payment.currency,
       },
     });
-  } catch (error: any) {
-    console.error("Erreur publication notification:", error.message);
-    // TODO: publish an event for the log queue
+  } catch (error) {
+    await logger.warn(
+      `Failed to publish PAYMENT_REFUNDED notification for ${authUser.email}`,
+      { userId: payment.userId },
+    );
   }
+
+  await logger.info(`Payment refunded successfully: ${id}`, {
+    userId: payment.userId,
+  });
 
   return updatedPayment;
 };

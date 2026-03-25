@@ -1,15 +1,13 @@
+import { EventStatus } from "@prisma/client";
 import { prisma } from "../data/prismaClient";
 import { AppError } from "./config/appError";
-import { EventStatus } from "@prisma/client";
+import { publishNotification } from "./publisher/notificationPublisher";
+import { logger } from "./utils/logger";
 import { CreateEventDto } from "./types/createEventDto";
 import { UpdateEventDto } from "./types/updateEventDto";
-import { publishNotification } from "./publisher/notificationPublisher";
-import { LogEventDto } from "./types/logEventDto";
 
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://auth-service:3000";
-const LOGGER_SERVICE_URL =
-  process.env.LOGGER_SERVICE_URL || "http://logger-service:3000";
 
 const getAuthUser = async (userId: string) => {
   const authResponse = await fetch(
@@ -21,22 +19,6 @@ const getAuthUser = async (userId: string) => {
 
   const result = await authResponse.json();
   return result.data;
-};
-
-const logEvent = async (dto: LogEventDto) => {
-  fetch(`${LOGGER_SERVICE_URL}/api/loggers`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "internal-api-key": process.env.INTERNAL_API_KEY || "",
-    },
-    body: JSON.stringify({
-      ...dto,
-      serviceName: "EVENT_SERVICE",
-    }),
-  }).catch((err) =>
-    console.error(`[EVENT_SERVICE] Logger service unavailable:`, err.message),
-  );
 };
 
 export const createEvent = async (
@@ -71,9 +53,9 @@ export const createEvent = async (
 
   const newEvent = await prisma.event.create({
     data: {
-      title: title,
-      description: description,
-      location: location,
+      title,
+      description,
+      location,
       date: dto.date,
       maxCapacity: dto.maxCapacity,
       availableStock: dto.maxCapacity,
@@ -90,16 +72,22 @@ export const createEvent = async (
       to: authUser.email,
       data: { title },
     });
-  } catch (error: any) {
-    console.error("Erreur publication notification:", error.message);
-    // TODO: publish an event for the log queue
+  } catch (error) {
+    await logger.warn(
+      `Failed to publish EVENT_CREATED notification for ${authUser.email}`,
+      { userId: createdByUserId },
+    );
   }
+
+  await logger.info(`Event created successfully: ${newEvent.id}`, {
+    userId: createdByUserId,
+  });
 
   return newEvent;
 };
 
 export const getAllEventsForUser = async (availableOnly: boolean = false) => {
-  return await prisma.event.findMany({
+  const events = await prisma.event.findMany({
     where: {
       deletedAt: null,
       status: availableOnly
@@ -108,28 +96,46 @@ export const getAllEventsForUser = async (availableOnly: boolean = false) => {
     },
     orderBy: { date: "asc" },
   });
+
+  await logger.info(
+    `Events retrieved successfully for users: ${events.length}`,
+  );
+
+  return events;
 };
 
 export const getAllEventsForAdmin = async (status?: EventStatus) => {
-  return await prisma.event.findMany({
+  const events = await prisma.event.findMany({
     where: {
       ...(status && { status }),
     },
     orderBy: { date: "asc" },
   });
+
+  await logger.info(
+    `Events retrieved successfully for admin: ${events.length}`,
+  );
+
+  return events;
 };
 
 export const getEventsForEventCreator = async (
   userId: string,
   status?: EventStatus,
 ) => {
-  return await prisma.event.findMany({
+  const events = await prisma.event.findMany({
     where: {
       createdByUserId: userId,
       ...(status && { status }),
     },
     orderBy: { date: "asc" },
   });
+
+  await logger.info(`Creator events retrieved successfully: ${events.length}`, {
+    userId,
+  });
+
+  return events;
 };
 
 export const getEventByIdForUser = async (id: string) => {
@@ -145,6 +151,8 @@ export const getEventByIdForUser = async (id: string) => {
     throw new AppError("Événement non trouvé.", 404);
   }
 
+  await logger.info(`Event retrieved successfully for user: ${id}`);
+
   return event;
 };
 
@@ -158,6 +166,8 @@ export const getEventByIdForAdmin = async (id: string) => {
   if (!event) {
     throw new AppError("Événement non trouvé.", 404);
   }
+
+  await logger.info(`Event retrieved successfully for admin: ${id}`);
 
   return event;
 };
@@ -176,6 +186,10 @@ export const getEventByIdForEventCreator = async (
   if (!event) {
     throw new AppError("Événement non trouvé.", 404);
   }
+
+  await logger.info(`Creator event retrieved successfully: ${id}`, {
+    userId,
+  });
 
   return event;
 };
@@ -222,10 +236,16 @@ export const updateEvent = async (
       to: authUser.email,
       data: { title: updatedEvent.title },
     });
-  } catch (error: any) {
-    console.error("Erreur publication notification:", error.message);
-    // TODO: publish an event for the log queue
+  } catch (error) {
+    await logger.warn(
+      `Failed to publish EVENT_UPDATED notification for ${authUser.email}`,
+      { userId: event.createdByUserId },
+    );
   }
+
+  await logger.info(`Event updated successfully: ${id}`, {
+    userId,
+  });
 
   return updatedEvent;
 };
@@ -265,13 +285,19 @@ export const updateEventStatus = async (
       to: authUser.email,
       data: {
         title: event.title,
-        status: status,
+        status,
       },
     });
-  } catch (error: any) {
-    console.error("Erreur publication notification:", error.message);
-    // TODO: publish an event for the log queue
+  } catch (error) {
+    await logger.warn(
+      `Failed to publish EVENT_STATUS_UPDATED notification for ${authUser.email}`,
+      { userId: event.createdByUserId },
+    );
   }
+
+  await logger.info(`Event status updated successfully: ${id}`, {
+    userId,
+  });
 
   return updatedStatus;
 };
@@ -320,10 +346,16 @@ export const deleteEvent = async (
         data: { title: event.title },
       },
     });
-  } catch (error: any) {
-    console.error("Erreur publication notification:", error.message);
-    // TODO: publish an event for the log queue
+  } catch (error) {
+    await logger.warn(
+      `Failed to publish EVENT_DELETED notification for ${authUser.email}`,
+      { userId: event.createdByUserId },
+    );
   }
+
+  await logger.info(`Event deleted successfully: ${id}`, {
+    userId,
+  });
 };
 
 export const decrementStock = async (id: string) => {
@@ -339,7 +371,7 @@ export const decrementStock = async (id: string) => {
     throw new AppError("Aucune place disponible.", 409);
   }
 
-  return await prisma.event.update({
+  const updatedEvent = await prisma.event.update({
     where: {
       id,
       availableStock: { gt: 0 },
@@ -349,4 +381,8 @@ export const decrementStock = async (id: string) => {
       status: event.availableStock === 1 ? EventStatus.SOLD_OUT : undefined,
     },
   });
+
+  await logger.info(`Event stock decremented successfully: ${id}`);
+
+  return updatedEvent;
 };
