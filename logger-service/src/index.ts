@@ -17,7 +17,6 @@ const swaggerDocument = jsYaml.load(
 ) as object;
 
 app.use("/api/loggers/doc", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
 app.use("/api/loggers", loggerRouter);
 
 const PORT = 3000;

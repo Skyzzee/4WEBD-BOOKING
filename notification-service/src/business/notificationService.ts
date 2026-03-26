@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
-import { LogEventDto, LogSeverity } from "./types/logEventDto";
+import { publishLog } from "./publisher/logsPublisher";
 
 const options: SMTPTransport.Options = {
   host: process.env.MAIL_HOST,
@@ -12,27 +12,6 @@ const options: SMTPTransport.Options = {
 };
 
 const transporter = nodemailer.createTransport(options);
-const LOGGER_SERVICE_URL =
-  process.env.LOGGER_SERVICE_URL || "http://logger-service:3000";
-
-const logEvent = async (dto: LogEventDto) => {
-  fetch(`${LOGGER_SERVICE_URL}/api/loggers`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "internal-api-key": process.env.INTERNAL_API_KEY || "",
-    },
-    body: JSON.stringify({
-      ...dto,
-      serviceName: "NOTIFICATION_SERVICE",
-    }),
-  }).catch((err) =>
-    console.error(
-      `[NOTIFICATION_SERVICE] Logger service unavailable:`,
-      err.message,
-    ),
-  );
-};
 
 export const processNotification = async (
   templateName: string,
@@ -42,10 +21,13 @@ export const processNotification = async (
   const builder = EMAIL_TEMPLATES[templateName];
 
   if (!builder) {
-    logEvent({
-      level: LogSeverity.WARN,
+    await publishLog({
+      level: "WARN",
+      serviceName: "NOTIFICATION_SERVICE",
       message: `Template ${templateName} non reconnu.`,
-    });
+    }).catch((err) =>
+      console.error("Logger service unavailable:", err.message),
+    );
     throw new Error(`Template ${templateName} non reconnu.`);
   }
 
@@ -59,10 +41,13 @@ export const processNotification = async (
       html,
     });
   } catch (error: any) {
-    logEvent({
-      level: LogSeverity.ERROR,
+    await publishLog({
+      level: "ERROR",
+      serviceName: "NOTIFICATION_SERVICE",
       message: `Erreur lors de l'envoi de l'email à ${to} pour le template ${templateName}: ${error.message}`,
-    });
+    }).catch((err) =>
+      console.error("Logger service unavailable:", err.message),
+    );
     throw new Error("Erreur lors de l'envoi de la notification.");
   }
 };
