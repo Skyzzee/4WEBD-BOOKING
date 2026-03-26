@@ -68,6 +68,8 @@ Wait until all services are fully started.
 
 Open a new terminal and run:
 
+note: scripts are using bash so on windows you can use the 'git bash' terminal of vscode
+
 ```bash
 npm run setup:data
 ```
@@ -117,10 +119,11 @@ npm test
 
 Each service exposes its own Swagger UI documentation:
 
-| Service  | URL                                                                                |
-| -------- | ---------------------------------------------------------------------------------- |
-| Auth     | [http://localhost:8080/api/auth/docs](http://localhost:8080/api/auth/docs)         |
-| Events   | [http://localhost:8080/api/events/docs](http://localhost:8080/api/events/docs)     |
-| Payments | [http://localhost:8080/api/payments/docs](http://localhost:8080/api/payments/docs) |
-| Tickets  | [http://localhost:8080/api/tickets/docs](http://localhost:8080/api/tickets/docs)   |
-| Users    | [http://localhost:8080/api/users/docs](http://localhost:8080/api/users/docs)       |
+| Service  | URL                                                                              |
+| -------- | -------------------------------------------------------------------------------- |
+| Auth     | [http://localhost:8080/api/auth/doc](http://localhost:8080/api/auth/doc)         |
+| Events   | [http://localhost:8080/api/events/doc](http://localhost:8080/api/events/doc)     |
+| Payments | [http://localhost:8080/api/payments/doc](http://localhost:8080/api/payments/doc) |
+| Tickets  | [http://localhost:8080/api/tickets/doc](http://localhost:8080/api/tickets/doc)   |
+| Users    | [http://localhost:8080/api/users/doc](http://localhost:8080/api/users/doc)       |
+| Logger   | [http://localhost:8080/api/loggers/doc](http://localhost:8080/api/loggers/doc)   |
