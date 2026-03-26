@@ -15,6 +15,7 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "bash run-tests.sh"
+    "test": "bash run-tests.sh",
+    "seed": "bash seed.sh"
   }
 }

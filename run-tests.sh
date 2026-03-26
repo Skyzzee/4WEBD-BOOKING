@@ -1,5 +1,5 @@
 #!/bin/bash
-services=("auth-service" "event-service" "notification-service" "payment-service" "ticket-service" "user-service")
+services=("auth-service" "event-service" "notification-service" "payment-service" "ticket-service" "user-service", "logger-service")
 
 for service in "${services[@]}"; do
     echo "Running tests in $service..."
