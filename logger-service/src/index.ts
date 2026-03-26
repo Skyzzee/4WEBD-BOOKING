@@ -1,18 +1,37 @@
-import 'dotenv/config';
-import express from 'express';
-import loggerRouter from './presentation/routes/loggerRoute';
+import "dotenv/config";
+import express from "express";
+import swaggerUi from "swagger-ui-express";
+import jsYaml from "js-yaml";
+import fs from "fs";
+import path from "path";
+import loggerRouter from "./presentation/routes/loggerRoute";
+import { connectRabbitMQ } from "./business/config/rabbitmq";
+import { errorMiddleware } from "./presentation/middlewares/errorMiddleware";
+import { startLogsConsumer } from "./business/consumers/logsConsumer";
 
 const app = express();
 app.use(express.json());
 
-app.use('/api/loggers', loggerRouter);
+const swaggerDocument = jsYaml.load(
+  fs.readFileSync(path.join(__dirname, "../doc/openapi.yaml"), "utf8"),
+) as object;
+
+app.use("/api/loggers/doc", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api/loggers", loggerRouter);
 
 const PORT = 3000;
 
-app.get('/', (req, res) => {
-  res.send('Booking API Logger Service - Opérationnelle');
+app.get("/", (req, res) => {
+  res.send("Booking API Logger Service - Opérationnelle");
 });
+app.use(errorMiddleware);
 
-app.listen(PORT, () => {
-  console.log(`Logger Service lancé sur http://localhost:${PORT}`);
-});
+const start = async () => {
+  await connectRabbitMQ();
+  await startLogsConsumer();
+  app.listen(PORT, () => {
+    console.log(`Logger Service lancé sur http://localhost:${PORT}`);
+  });
+};
+
+start();

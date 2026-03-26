@@ -1,0 +1,195 @@
+openapi: 3.0.0
+info:
+  title: Payment Service API
+  version: 1.0.0
+  description: Service de gestion des paiements via Stripe
+
+servers:
+  - url: http://localhost:8080/api/payments
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ticketId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          description: Montant en centimes
+          example: 2500
+        currency:
+          type: string
+          example: EUR
+        status:
+          type: string
+          enum: [PENDING, SUCCESS, FAILED, REFUNDED]
+        providerName:
+          type: string
+          example: STRIPE
+        stripePaymentIntentId:
+          type: string
+          example: pi_123456789
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+paths:
+  /ticket/{ticketId}:
+    get:
+      summary: Récupérer un paiement par ID de billet
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Paiement récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès non autorisé
+        "404":
+          description: Paiement non trouvé
+
+  /user/{userId}:
+    get:
+      summary: Récupérer les paiements d'un utilisateur
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Liste des paiements de l'utilisateur
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+        "404":
+          description: Utilisateur non trouvé
+
+  /event/{eventId}:
+    get:
+      summary: Récupérer les paiements d'un événement
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Liste des paiements de l'événement
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins et event creators
+        "404":
+          description: Événement non trouvé
+
+  /{id}:
+    get:
+      summary: Récupérer un paiement par ID
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Paiement récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+        "404":
+          description: Paiement non trouvé
+
+  /{id}/refund:
+    patch:
+      summary: Rembourser un paiement
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Remboursement effectué avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "400":
+          description: Paiement non remboursable
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+        "404":
+          description: Paiement non trouvé
+        "409":
+          description: Paiement déjà remboursé

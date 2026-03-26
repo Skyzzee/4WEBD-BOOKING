@@ -1,6 +1,5 @@
 services:
-
-# DATABASES
+  # DATABASES
   auth-db:
     image: postgres:16-alpine
     container_name: auth-db
@@ -85,7 +84,7 @@ services:
     networks:
       - booking-network
 
-# SERVICES
+  # SERVICES
   auth-service:
     build:
       context: ./auth-service
@@ -95,9 +94,13 @@ services:
       DATABASE_URL: postgresql://${AUTH_DB_USER}:${AUTH_DB_PASSWORD}@auth-db:5432/${AUTH_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      RABBITMQ_URL: ${RABBITMQ_URL}
       PORT: 3000
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking-network
 
@@ -110,9 +113,13 @@ services:
       DATABASE_URL: postgresql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-db:5432/${USER_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      RABBITMQ_URL: ${RABBITMQ_URL}
       PORT: 3000
     depends_on:
-      - user-db
+      user-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking-network
 
@@ -120,14 +127,19 @@ services:
     build:
       context: ./event-service
       dockerfile: Dockerfile
-    container_name: event-service
+    deploy:
+      replicas: 2
     environment:
       DATABASE_URL: postgresql://${EVENT_DB_USER}:${EVENT_DB_PASSWORD}@event-db:5432/${EVENT_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      RABBITMQ_URL: ${RABBITMQ_URL}
       PORT: 3000
     depends_on:
-      - event-db
+      event-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking-network
 
@@ -135,23 +147,26 @@ services:
     build:
       context: ./ticket-service
       dockerfile: Dockerfile
-    container_name: ticket-service
+    deploy:
+      replicas: 2
     environment:
       DATABASE_URL: postgresql://${TICKET_DB_USER}:${TICKET_DB_PASSWORD}@ticket-db:5432/${TICKET_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       JWT_QRCODE_SECRET: ${JWT_QRCODE_SECRET}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      RABBITMQ_URL: ${RABBITMQ_URL}
       PORT: 3000
       EVENT_SERVICE_URL: http://event-service:3000
       PAYMENT_SERVICE_URL: http://payment-service:3000
-      NOTIFICATION_SERVICE_URL: http://notification-service:3000
-      LOGGER_SERVICE_URL: http://logger-service:3000
     depends_on:
-      - ticket-db
-      - event-service
-      - payment-service
-      - notification-service
-      - logger-service
+      ticket-db:
+        condition: service_started
+      event-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking-network
 
@@ -159,14 +174,20 @@ services:
     build:
       context: ./payment-service
       dockerfile: Dockerfile
-    container_name: payment-service
+    deploy:
+      replicas: 2
     environment:
       DATABASE_URL: postgresql://${PAYMENT_DB_USER}:${PAYMENT_DB_PASSWORD}@payment-db:5432/${PAYMENT_DB_NAME}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      RABBITMQ_URL: ${RABBITMQ_URL}
       PORT: 3000
     depends_on:
-      - payment-db
+      payment-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking-network
 
@@ -180,7 +201,11 @@ services:
       MAIL_PORT: ${MAIL_PORT}
       MAIL_USER: ${MAIL_USER}
       MAIL_PASS: ${MAIL_PASS}
+      RABBITMQ_URL: ${RABBITMQ_URL}
       PORT: 3000
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking-network
 
@@ -191,13 +216,19 @@ services:
     container_name: logger-service
     environment:
       DATABASE_URL: postgresql://${LOGGER_DB_USER}:${LOGGER_DB_PASSWORD}@logger-db:5432/${LOGGER_DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      RABBITMQ_URL: ${RABBITMQ_URL}
       PORT: 3000
     depends_on:
-      - logger-db
+      logger-db:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - booking-network
 
-# NGINX
+  # NGINX
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -214,6 +245,27 @@ services:
     networks:
       - booking-network
 
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - booking-network
+    healthcheck: # Need to wait for rabbitMQ to be ready to accept connexions
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 # VOLUMES
 volumes:
   auth_db_data:
@@ -222,6 +274,7 @@ volumes:
   ticket_db_data:
   payment_db_data:
   logger_db_data:
+  rabbitmq_data:
 
 # NETWORKS
 networks:

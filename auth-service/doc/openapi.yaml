@@ -1,0 +1,211 @@
+openapi: 3.0.0
+info:
+  title: Auth Service API
+  version: 1.0.0
+  description: Service d'authentification et de gestion des utilisateurs
+
+servers:
+  - url: http://localhost:8080/api/auth
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, confirmPassword, firstName, lastName]
+      properties:
+        email:
+          type: string
+          example: john@example.com
+        password:
+          type: string
+          example: Password1
+        confirmPassword:
+          type: string
+          example: Password1
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          example: john@example.com
+        password:
+          type: string
+          example: Password1
+
+    UpdateRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [USER, ADMIN, EVENT_CREATOR]
+          example: ADMIN
+
+paths:
+  /register:
+    post:
+      summary: Créer un compte utilisateur
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Compte créé avec succès
+        "400":
+          description: Données invalides
+        "409":
+          description: Email déjà utilisé
+
+  /login:
+    post:
+      summary: Se connecter
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Connexion réussie, retourne un JWT
+        "401":
+          description: Email ou mot de passe incorrect
+        "403":
+          description: Email non vérifié ou compte supprimé
+
+  /verify-email/{token}:
+    get:
+      summary: Vérifier l'adresse email
+      tags: [Auth]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Email vérifié avec succès
+        "400":
+          description: Token invalide ou compte déjà actif
+        "404":
+          description: Utilisateur non trouvé
+
+  /me:
+    get:
+      summary: Récupérer son propre profil
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profil récupéré avec succès
+        "401":
+          description: Token manquant ou invalide
+
+  /:
+    get:
+      summary: Récupérer tous les utilisateurs
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste des utilisateurs
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+
+  /{id}:
+    get:
+      summary: Récupérer un utilisateur par ID
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Utilisateur récupéré avec succès
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+        "404":
+          description: Utilisateur non trouvé
+
+    delete:
+      summary: Supprimer un utilisateur
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Utilisateur supprimé avec succès
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+        "404":
+          description: Utilisateur non trouvé
+
+  /{id}/role:
+    patch:
+      summary: Mettre à jour le rôle d'un utilisateur
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoleRequest"
+      responses:
+        "200":
+          description: Rôle mis à jour avec succès
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+        "404":
+          description: Utilisateur non trouvé

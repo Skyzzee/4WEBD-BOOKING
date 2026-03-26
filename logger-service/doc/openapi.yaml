@@ -1,0 +1,201 @@
+openapi: 3.0.0
+info:
+  title: Logger Service API
+  version: 1.0.0
+  description: Service de gestion des logs
+
+servers:
+  - url: http://localhost:8080/api/loggers
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Log:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        level:
+          type: string
+          enum: [INFO, WARN, ERROR]
+        serviceName:
+          type: string
+          enum:
+            [
+              AUTH_SERVICE,
+              USER_SERVICE,
+              EVENT_SERVICE,
+              TICKET_SERVICE,
+              PAYMENT_SERVICE,
+              NOTIFICATION_SERVICE,
+              LOGGER_SERVICE,
+            ]
+        message:
+          type: string
+          example: User registered successfully
+        userId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+parameters:
+  levelFilter:
+    name: level
+    in: query
+    required: false
+    schema:
+      type: string
+      enum: [INFO, WARN, ERROR]
+    description: Filtrer par niveau de log
+  fromFilter:
+    name: from
+    in: query
+    required: false
+    schema:
+      type: string
+      format: date-time
+    description: Date de début
+  toFilter:
+    name: to
+    in: query
+    required: false
+    schema:
+      type: string
+      format: date-time
+    description: Date de fin
+
+paths:
+  /:
+    get:
+      summary: Récupérer tous les logs
+      tags: [Logs]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/parameters/levelFilter"
+        - $ref: "#/parameters/fromFilter"
+        - $ref: "#/parameters/toFilter"
+        - name: serviceName
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filtrer par nom de service
+      responses:
+        "200":
+          description: Liste des logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Log"
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+
+  /{id}:
+    get:
+      summary: Récupérer un log par ID
+      tags: [Logs]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Log récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Log"
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+        "404":
+          description: Log non trouvé
+
+  /user/{userId}:
+    get:
+      summary: Récupérer les logs d'un utilisateur
+      tags: [Logs]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/parameters/levelFilter"
+        - $ref: "#/parameters/fromFilter"
+        - $ref: "#/parameters/toFilter"
+      responses:
+        "200":
+          description: Liste des logs de l'utilisateur
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Log"
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins
+
+  /service/{serviceName}:
+    get:
+      summary: Récupérer les logs d'un service
+      tags: [Logs]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              [
+                AUTH_SERVICE,
+                USER_SERVICE,
+                EVENT_SERVICE,
+                TICKET_SERVICE,
+                PAYMENT_SERVICE,
+                NOTIFICATION_SERVICE,
+                LOGGER_SERVICE,
+              ]
+        - $ref: "#/parameters/levelFilter"
+        - $ref: "#/parameters/fromFilter"
+        - $ref: "#/parameters/toFilter"
+      responses:
+        "200":
+          description: Liste des logs du service
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Log"
+        "401":
+          description: Token manquant ou invalide
+        "403":
+          description: Accès réservé aux admins

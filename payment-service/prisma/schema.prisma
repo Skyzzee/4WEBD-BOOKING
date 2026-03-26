@@ -7,17 +7,17 @@ datasource db {
 }
 
 model Payment {
-  id           String   @id @default(uuid())
-  userId       String
-  ticketId     String   @unique
-  amount       Int
-  currency     String   @default("EUR")
-  status       PaymentStatus
-  providerName String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String        @id @default(uuid())
+  userId                String
+  ticketId              String        @unique
+  amount                Int
+  currency              String        @default("EUR")
+  status                PaymentStatus
+  providerName          String?
+  stripePaymentIntentId String?       
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 }
-
 enum PaymentStatus {
   PENDING
   SUCCESS

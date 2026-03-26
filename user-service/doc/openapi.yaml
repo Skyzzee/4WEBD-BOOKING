@@ -1,0 +1,116 @@
+openapi: 3.0.0
+info:
+  title: User Service API
+  version: 1.0.0
+  description: Service de gestion des profils utilisateurs
+
+servers:
+  - url: http://localhost:8080/api/users
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        authId:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        phone:
+          type: string
+          example: "0612345678"
+        avatarUrl:
+          type: string
+          example: https://avatar.com/john.jpg
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        phone:
+          type: string
+          example: "0612345678"
+        avatarUrl:
+          type: string
+          example: https://avatar.com/john.jpg
+
+paths:
+  /{authId}:
+    get:
+      summary: Récupérer un profil utilisateur
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: authId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Profil récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Token manquant ou invalide
+        "404":
+          description: Utilisateur non trouvé
+
+    patch:
+      summary: Mettre à jour un profil utilisateur
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: authId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Profil mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Token manquant ou invalide
+        "404":
+          description: Utilisateur non trouvé
