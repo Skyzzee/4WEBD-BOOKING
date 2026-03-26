@@ -127,7 +127,8 @@ services:
     build:
       context: ./event-service
       dockerfile: Dockerfile
-    container_name: event-service
+    deploy:
+      replicas: 2
     environment:
       DATABASE_URL: postgresql://${EVENT_DB_USER}:${EVENT_DB_PASSWORD}@event-db:5432/${EVENT_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
@@ -146,7 +147,8 @@ services:
     build:
       context: ./ticket-service
       dockerfile: Dockerfile
-    container_name: ticket-service
+    deploy:
+      replicas: 2
     environment:
       DATABASE_URL: postgresql://${TICKET_DB_USER}:${TICKET_DB_PASSWORD}@ticket-db:5432/${TICKET_DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
@@ -172,7 +174,8 @@ services:
     build:
       context: ./payment-service
       dockerfile: Dockerfile
-    container_name: payment-service
+    deploy:
+      replicas: 2
     environment:
       DATABASE_URL: postgresql://${PAYMENT_DB_USER}:${PAYMENT_DB_PASSWORD}@payment-db:5432/${PAYMENT_DB_NAME}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}

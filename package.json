@@ -15,7 +15,10 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "bash run-tests.sh",
-    "seed": "bash seed.sh"
+    "start": "docker compose up --build",
+    "db:init": "bash init-db.sh",
+    "seed": "bash seed.sh",
+    "setup:data": "npm run db:init && npm run seed",
+    "test": "bash run-tests.sh"
   }
 }
