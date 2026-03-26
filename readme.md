@@ -3,7 +3,8 @@
 ![Architecture Diagram](./archi-diagram.png)
 
 A microservices-based ticketing system for concerts and events.
-This project is a backend-only API and does not include any frontend application. All interactions are performed through HTTP endpoints.
+This project is a backend-only API and does not include any frontend application. 
+All interactions are performed through HTTP endpoints.
 
 ## Stack
 
@@ -93,6 +94,16 @@ The following users are available after seeding:
 | ADMIN         | admin@booking.com   | Admin1234   |
 | EVENT_CREATOR | creator@booking.com | Creator1234 |
 | USER          | user@booking.com    | User1234    |
+
+## Postman Collection
+
+You can quickly find the Postman collection containing all the routes with pre-recorded data 
+in order to be able to quickly and easily perform tests on the different routes of the project. 
+
+- [Postman-collection](./BOOKING-4WEBD.postman_collection.json)
+
+You simply need to open Postman, click on the button (at the top right of the left menu) 
+"Import" and drop the JSON document.
 
 ## Running Tests
 

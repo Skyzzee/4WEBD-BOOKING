@@ -33,4 +33,4 @@ class Logger {
   }
 }
 
-export const logger = new Logger("auth-service");
+export const logger = new Logger("EVENT_SERVICE");
