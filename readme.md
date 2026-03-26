@@ -67,6 +67,8 @@ Wait until all services are fully started.
 
 Open a new terminal and run:
 
+note: scripts are using bash so on windows you can use the 'git bash' terminal of vscode
+
 ```bash
 npm run setup:data
 ```
